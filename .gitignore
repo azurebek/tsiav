@@ -1,0 +1,26 @@
+# Cached source material (recreated by the download scripts)
+data/raw/
+
+# Extracted full text is generated locally and may be large
+data/interim/extracted_docs*.json
+
+# Runtime output
+logs/
+tmp/
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local configuration and secrets
+.env
+.env.*
+
+# Operating-system and editor files
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/
