@@ -201,8 +201,6 @@ def suggest_type(title: str) -> str:
         return "training"
     if any(term in folded for term in ("askeri is birligi", "askeri isbirligi", "askeri cerceve")):
         return "framework"
-    if "protokol" in folded:
-        return "protocol_amendment"
     if any(term in folded for term in DEFENCE_TERMS):
         return "other_military"
     return ""

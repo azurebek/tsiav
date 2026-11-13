@@ -78,7 +78,7 @@ def issue_number(page_text: str, filename: str) -> str:
 
 def channel_for(title: str) -> str:
     folded = title.casefold()
-    if "uygun bulunduğuna dair kanun" in folded:
+    if "kanun" in folded and "uygun bulundu" in folded:
         return "law"
     if (
         "hakkında karar" in folded

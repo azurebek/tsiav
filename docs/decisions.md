@@ -54,3 +54,21 @@
   text as the 2010 Türkiye-South Korea military student exchange and education
   memorandum. Full-run labels remain provisional until deduplication and quality
   review are complete.
+- Title canonicalization and law/decision deduplication reduce 194 provisionally
+  included publications (the 193 title suggestions plus the manual South Korea
+  override) to 139 provisional agreement groups. The 2017 regression remains
+  exactly 37 publications and 22 agreements.
+- Scanned first pages are OCRed locally with the installed Turkish Windows OCR
+  engine. OCR output is retained separately and never treated as a silent manual
+  correction. Twelve publications with inadequate machine text were visually
+  verified and recorded in `manual_extraction_overrides.csv`.
+- Publication-level extraction currently recovers a document number for all 194
+  provisionally included publications, a signed date for 185, and an approval
+  date for 193. After agreement-level consolidation, approval date coverage is
+  complete; two groups still lack a signed date, including one multi-instrument
+  decision that must be split.
+- Scope review currently yields 22 pilot-confirmed inclusions, 107 provisional
+  inclusions, 7 clear bilateral-scope exclusions, 2 multi-instrument publications
+  requiring a split decision, and 1 Coast Guard-only instrument requiring a user
+  scope decision. These statuses remain explicit in the draft rather than being
+  silently promoted to final labels.

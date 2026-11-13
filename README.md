@@ -1,7 +1,9 @@
-# TSİAV 2017 pilot
+# TSİAV dataset pipeline
 
-This folder contains a reproducible pilot pipeline for bilateral defence
-cooperation agreements published in the Resmî Gazete during 2017.
+This repository contains a reproducible pipeline for bilateral defence
+cooperation agreements published in the Resmî Gazete from 2010 through the
+2026-11-13 snapshot. The manually reviewed 2017 dataset remains the regression
+fixture for the full run.
 
 ## Run
 
@@ -55,6 +57,27 @@ The full-run intermediate outputs are:
   review when automated text extraction was inadequate.
 - `data/interim/manual_review_overrides.csv`: documented manual resolutions for
   records whose index titles are truncated or otherwise not classifiable by rule.
+- `data/interim/provisional_agreement_groups.csv`: law and decision publications
+  grouped into provisional agreement records.
+- `data/interim/publication_fields.csv`: publication-level document numbers,
+  signed dates, and approval dates with their extraction source.
+- `data/interim/provisional_dataset.csv`: one row per deduplicated agreement group,
+  including scope status and reason.
+- `data/interim/dataset_draft.csv`: current in-scope draft. It is not a final
+  release while rows remain provisional.
+- `data/interim/scope_exceptions.csv`: out-of-scope, split-required, and
+  user-decision items kept outside the draft.
+- `data/interim/exclusion_log.csv`: publication-level exclusions and reasons.
+
+After the cached collection exists, rebuild every review artifact with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_full_processing.ps1
+```
+
+The processing runner uses Windows OCR for scanned first pages and then reruns
+field extraction. Visually verified OCR exceptions are stored explicitly in
+`manual_extraction_overrides.csv`.
 
 One failed document does not stop the whole download batch. Re-running the same
 command retries only missing documents.
