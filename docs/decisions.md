@@ -52,8 +52,8 @@
 - Across the full corpus the calibrated rules suggest 193 inclusions and 971
   exclusions. The one remaining truncated title was resolved from its full saved
   text as the 2010 Türkiye-South Korea military student exchange and education
-  memorandum. Full-run labels remain provisional until deduplication and quality
-  review are complete.
+  memorandum. These suggestions were subsequently deduplicated and manually
+  reviewed; they are not treated as final labels on their own.
 - Title canonicalization and law/decision deduplication reduce 194 provisionally
   included publications (the 193 title suggestions plus the manual South Korea
   override) to 139 provisional agreement groups. The 2017 regression remains
@@ -62,13 +62,24 @@
   engine. OCR output is retained separately and never treated as a silent manual
   correction. Twelve publications with inadequate machine text were visually
   verified and recorded in `manual_extraction_overrides.csv`.
-- Publication-level extraction currently recovers a document number for all 194
+- Publication-level extraction recovers a document number for all 194
   provisionally included publications, a signed date for 185, and an approval
-  date for 193. After agreement-level consolidation, approval date coverage is
-  complete; two groups still lack a signed date, including one multi-instrument
-  decision that must be split.
-- Scope review currently yields 22 pilot-confirmed inclusions, 107 provisional
-  inclusions, 7 clear bilateral-scope exclusions, 2 multi-instrument publications
-  requiring a split decision, and 1 Coast Guard-only instrument requiring a user
-  scope decision. These statuses remain explicit in the draft rather than being
-  silently promoted to final labels.
+  date for 193. After agreement-level consolidation and documented manual source
+  checks, approval date coverage is complete and only the Jordan S-70 training
+  protocol still lacks a signed date.
+- Scope review yields 133 confirmed inclusions, 7 clear bilateral-scope
+  exclusions, and 1 Coast Guard-only instrument requiring a user scope decision.
+  The unresolved item remains explicit outside the draft rather than being
+  silently promoted to a final label.
+- The 107 title-level provisional inclusions were subsequently reviewed as a
+  frozen batch. The batch records the expected row count and SHA-256 digest of the
+  sorted group IDs so a future pipeline change cannot silently inherit the manual
+  approval. Seven primary-content type corrections and one recovered full title
+  are stored in `manual_group_overrides.csv`.
+- Two multi-instrument publications are split explicitly in
+  `manual_group_splits.csv`: decision 2011/2212 becomes separate Ethiopia
+  framework-agreement and amendment rows, while decision 2018/12002 becomes
+  separate Qatar and Saudi Arabia host-nation-support rows. Each split row keeps
+  the shared official source. The Ethiopia amendment signing date (2008-05-16)
+  is taken from the official TBMM bill and Foreign Affairs Committee report,
+  because it is not exposed in the retrievable Resmî Gazete text.

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import re
 import unicodedata
 from collections import defaultdict
@@ -30,6 +31,12 @@ def clean_title(title: str) -> str:
     )
     if marker:
         value = value[: marker.start()]
+    value = re.sub(
+        r"\s+Arasında\s+İmzalanan\s+[“\"]",
+        " Arasında ",
+        value,
+        flags=re.IGNORECASE,
+    )
     value = re.sub(r"\s+(?:İlişik\s+)?Notalarla\s+Birlikte$", "", value, flags=re.IGNORECASE)
     terminal_forms = (
         (r"Anlaşmas[ıi](?:['’”\"]?n[ıi]n)$", "Anlaşması"),
@@ -100,6 +107,21 @@ def main() -> None:
         default=Path("data/reference/partner_aliases.csv"),
     )
     parser.add_argument(
+        "--group-overrides",
+        type=Path,
+        default=Path("data/interim/manual_group_overrides.csv"),
+    )
+    parser.add_argument(
+        "--review-batches",
+        type=Path,
+        default=Path("data/interim/manual_group_review_batches.csv"),
+    )
+    parser.add_argument(
+        "--group-splits",
+        type=Path,
+        default=Path("data/interim/manual_group_splits.csv"),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("data/interim/provisional_dataset.csv"),
@@ -116,6 +138,16 @@ def main() -> None:
         pilot = list(csv.DictReader(handle))
     with args.partner_aliases.open(encoding="utf-8-sig", newline="") as handle:
         partner_aliases = list(csv.DictReader(handle))
+    with args.group_overrides.open(encoding="utf-8-sig", newline="") as handle:
+        group_overrides = {
+            row["group_id"]: row for row in csv.DictReader(handle)
+        }
+    with args.review_batches.open(encoding="utf-8-sig", newline="") as handle:
+        review_batches = list(csv.DictReader(handle))
+    with args.group_splits.open(encoding="utf-8-sig", newline="") as handle:
+        group_splits: dict[str, list[dict[str, str]]] = defaultdict(list)
+        for row in csv.DictReader(handle):
+            group_splits[row["source_group_id"]].append(row)
 
     members_by_group: dict[str, list[dict[str, str]]] = defaultdict(list)
     for item in members:
@@ -139,6 +171,8 @@ def main() -> None:
 
         raw_titles = split_values(group["titles"])
         title = confirmed["title_tr"] if confirmed else clean_title(raw_titles[0])
+        group_override = group_overrides.get(group["group_id"], {})
+        title = group_override.get("title_tr") or title
         scope_status, scope_reason = scope_suggestion(title, confirmed is not None)
         folded_title = fold_for_match(title)
         partner_matches = {
@@ -197,6 +231,8 @@ def main() -> None:
             notes.append("Partner requires manual confirmation.")
         if not confirmed:
             notes.append("Provisional row; title-level scope and parsed fields are not yet fully reviewed.")
+        if group_override.get("notes"):
+            notes.append(group_override["notes"])
 
         output_rows.append(
             {
@@ -206,6 +242,8 @@ def main() -> None:
                 "type": (
                     confirmed["type"]
                     if confirmed
+                    else group_override.get("type")
+                    if group_override.get("type")
                     else (split_values(group["suggested_types"]) or ["other_military"])[0]
                 ),
                 "is_framework": confirmed["is_framework"] if confirmed else group["is_framework"],
@@ -224,6 +262,54 @@ def main() -> None:
                 "scope_reason": scope_reason,
             }
         )
+
+    for batch in review_batches:
+        selected = [
+            row for row in output_rows if row["scope_status"] == batch["selection"]
+        ]
+        selected_ids = sorted(row["id"] for row in selected)
+        digest = hashlib.sha256("\n".join(selected_ids).encode("utf-8")).hexdigest()
+        if len(selected) != int(batch["expected_count"]) or digest != batch["group_ids_sha256"]:
+            raise ValueError(
+                "Manual review batch does not match the generated group set: "
+                f"snapshot={batch['snapshot']} count={len(selected)} sha256={digest}"
+            )
+        for row in selected:
+            row["status"] = batch["review_status"]
+            row["scope_status"] = "confirmed_in"
+            row["scope_reason"] = batch["review_reason"]
+            row["notes"] = row["notes"].replace(
+                "Provisional row; title-level scope and parsed fields are not yet fully reviewed. ",
+                "",
+            )
+            row["notes"] = (
+                row["notes"] + " " + f"Manual title review batch: {batch['snapshot']}."
+            ).strip()
+
+    expanded_rows: list[dict[str, str]] = []
+    for row in output_rows:
+        splits = group_splits.get(row["id"], [])
+        if not splits:
+            expanded_rows.append(row)
+            continue
+        for split in splits:
+            split_row = dict(row)
+            split_row.update(
+                {
+                    "id": split["split_id"],
+                    "partner": split["partner"],
+                    "title_tr": split["title_tr"],
+                    "type": split["type"],
+                    "is_framework": split["is_framework"],
+                    "date_signed": split["date_signed"],
+                    "notes": split["notes"],
+                    "status": "included",
+                    "scope_status": "confirmed_in",
+                    "scope_reason": "Multi-instrument publication manually split into legal instruments.",
+                }
+            )
+            expanded_rows.append(split_row)
+    output_rows = expanded_rows
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields_out = list(output_rows[0])

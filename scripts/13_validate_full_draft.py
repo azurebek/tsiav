@@ -120,14 +120,16 @@ def main() -> None:
             errors.append(f"{row_id}: decision channel without decision number")
 
     pilot_ids = {row["id"] for row in pilot}
-    draft_pilot_ids = {row["id"] for row in draft if row["status"] == "included"}
+    draft_pilot_ids = {row["id"] for row in draft if row["id"] in pilot_ids}
     if draft_pilot_ids != pilot_ids:
         errors.append("confirmed pilot IDs in the draft do not exactly match the 2017 fixture")
 
     exception_statuses = {row["scope_status"] for row in exceptions}
-    required_statuses = {"auto_exclude", "split_required", "needs_user_review"}
+    required_statuses = {"auto_exclude", "needs_user_review"}
     if not required_statuses.issubset(exception_statuses):
         errors.append("scope exceptions are missing one or more required status classes")
+    if "split_required" in exception_statuses:
+        errors.append("one or more multi-instrument publications still require splitting")
 
     if errors:
         print("Full-draft validation failed:")

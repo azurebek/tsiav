@@ -57,14 +57,20 @@ The full-run intermediate outputs are:
   review when automated text extraction was inadequate.
 - `data/interim/manual_review_overrides.csv`: documented manual resolutions for
   records whose index titles are truncated or otherwise not classifiable by rule.
+- `data/interim/manual_group_overrides.csv`: title and primary-content corrections
+  made during agreement-level review.
+- `data/interim/manual_group_review_batches.csv`: frozen count and SHA-256 digest
+  for the manually reviewed agreement batch.
+- `data/interim/manual_group_splits.csv`: explicit rows for publications that
+  approve more than one legal instrument.
 - `data/interim/provisional_agreement_groups.csv`: law and decision publications
   grouped into provisional agreement records.
 - `data/interim/publication_fields.csv`: publication-level document numbers,
   signed dates, and approval dates with their extraction source.
 - `data/interim/provisional_dataset.csv`: one row per deduplicated agreement group,
   including scope status and reason.
-- `data/interim/dataset_draft.csv`: current in-scope draft. It is not a final
-  release while rows remain provisional.
+- `data/interim/dataset_draft.csv`: current confirmed in-scope draft. It remains
+  a draft until the explicit user-decision queue is empty.
 - `data/interim/scope_exceptions.csv`: out-of-scope, split-required, and
   user-decision items kept outside the draft.
 - `data/interim/exclusion_log.csv`: publication-level exclusions and reasons.
