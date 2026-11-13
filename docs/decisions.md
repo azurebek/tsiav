@@ -67,10 +67,9 @@
   date for 193. After agreement-level consolidation and documented manual source
   checks, approval date coverage is complete and only the Jordan S-70 training
   protocol still lacks a signed date.
-- Scope review yields 133 confirmed inclusions, 7 clear bilateral-scope
-  exclusions, and 1 Coast Guard-only instrument requiring a user scope decision.
-  The unresolved item remains explicit outside the draft rather than being
-  silently promoted to a final label.
+- Scope review yields 133 core inclusions, 7 clear bilateral-scope exclusions,
+  and 1 Coast Guard-only instrument retained in the extended layer. There are no
+  unresolved scope decisions in this snapshot.
 - The 107 title-level provisional inclusions were subsequently reviewed as a
   frozen batch. The batch records the expected row count and SHA-256 digest of the
   sorted group IDs so a future pipeline change cannot silently inherit the manual
@@ -83,3 +82,24 @@
   the shared official source. The Ethiopia amendment signing date (2008-05-16)
   is taken from the official TBMM bill and Foreign Affairs Committee report,
   because it is not exposed in the retrievable Resmî Gazete text.
+
+## Core and extended samples
+
+- Non-military security forces (coast guard, gendarmerie, and police) are coded
+  but excluded from the core sample. They may be retained as `extended_only` for
+  robustness checks. This is a general coding rule, not a one-off decision.
+- Decision 2010/304 is retained only in the extended dataset. Its official title
+  identifies the Turkish Coast Guard Command and the Northern Cyprus Security
+  Forces Command as the parties, so it is coded `actor_type = coast_guard`,
+  `instrument_level = inter-agency`, `partner_recognition = limited`, and
+  `core_sample = false`. Council of Ministers approval is preserved in the
+  existing `channel` and `decision_no` fields; it does not change the parties to
+  the protocol.
+- `partner_recognition` is descriptive rather than an automatic core filter.
+  Northern Cyprus and Kosovo are coded `limited`; otherwise in-scope military
+  agreements with Kosovo remain in the core sample. This keeps recognition and
+  actor-type sensitivity tests analytically separable.
+- `instrument_level` is coded from the official title: an instrument naming a
+  government or the states themselves as parties is `intergovernmental`; an
+  instrument naming ministries, general staffs, service commands, academies, or
+  security-force commands without a government party is `inter-agency`.

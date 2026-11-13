@@ -27,6 +27,9 @@ path. Raw files under `data/raw/` must not be edited manually.
 - `data/interim/review.csv`: every candidate with inclusion status and reason.
 - `data/interim/extracted_docs.json`: readable text for review.
 - `data/final/tsiav_pilot_2017.csv`: one row per deduplicated agreement.
+- `data/final/tsiav_2010_2026.csv`: confirmed 2010–2026 core sample.
+- `data/final/tsiav_2010_2026_extended.csv`: core sample plus coded
+  non-military security-force instruments for robustness checks.
 
 When a law and decision refer to the same agreement, the final CSV stores both
 Resmî Gazete dates, issues, and URLs in law-then-decision order, separated by
@@ -63,16 +66,18 @@ The full-run intermediate outputs are:
   for the manually reviewed agreement batch.
 - `data/interim/manual_group_splits.csv`: explicit rows for publications that
   approve more than one legal instrument.
+- `data/interim/manual_scope_overrides.csv`: documented core/extended boundary
+  decisions and actor-level metadata.
 - `data/interim/provisional_agreement_groups.csv`: law and decision publications
   grouped into provisional agreement records.
 - `data/interim/publication_fields.csv`: publication-level document numbers,
   signed dates, and approval dates with their extraction source.
 - `data/interim/provisional_dataset.csv`: one row per deduplicated agreement group,
   including scope status and reason.
-- `data/interim/dataset_draft.csv`: current confirmed in-scope draft. It remains
-  a draft until the explicit user-decision queue is empty.
-- `data/interim/scope_exceptions.csv`: out-of-scope, split-required, and
-  user-decision items kept outside the draft.
+- `data/interim/dataset_draft.csv`: confirmed rows used to materialize the core
+  dataset.
+- `data/interim/scope_exceptions.csv`: clear exclusions and coded extended-only
+  instruments kept outside the core draft.
 - `data/interim/exclusion_log.csv`: publication-level exclusions and reasons.
 
 After the cached collection exists, rebuild every review artifact with:
@@ -92,3 +97,8 @@ command retries only missing documents.
 records whether the official Turkish title contains `çerçeve`, so a training
 agreement can also be a framework agreement without forcing a single-category
 tradeoff.
+
+Non-military security forces (`coast_guard`, `gendarmerie`, and `police`) are
+coded in the extended layer but excluded from the core sample. The
+`partner_recognition` field is descriptive: `limited` does not by itself remove
+an otherwise in-scope military agreement from the core sample.

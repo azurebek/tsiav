@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Materialize the current draft, scope exceptions, and publication exclusion log."""
+"""Materialize review artifacts plus the core and extended final datasets."""
 
 from __future__ import annotations
 
@@ -43,6 +43,16 @@ def main() -> None:
         type=Path,
         default=Path("data/interim/exclusion_log.csv"),
     )
+    parser.add_argument(
+        "--core",
+        type=Path,
+        default=Path("data/final/tsiav_2010_2026.csv"),
+    )
+    parser.add_argument(
+        "--extended",
+        type=Path,
+        default=Path("data/final/tsiav_2010_2026_extended.csv"),
+    )
     args = parser.parse_args()
 
     with args.dataset.open(encoding="utf-8-sig", newline="") as handle:
@@ -59,6 +69,12 @@ def main() -> None:
         row
         for row in dataset
         if row["scope_status"] not in {"confirmed_in", "provisional_in"}
+    ]
+    core = [row for row in dataset if row["core_sample"] == "true"]
+    extended = [
+        row
+        for row in dataset
+        if row["core_sample"] == "true" or row["scope_status"] == "extended_only"
     ]
     exclusions = [
         {
@@ -80,6 +96,8 @@ def main() -> None:
 
     write_csv(args.draft, draft, list(dataset[0]))
     write_csv(args.scope_exceptions, exceptions, list(dataset[0]))
+    write_csv(args.core, core, list(dataset[0]))
+    write_csv(args.extended, extended, list(dataset[0]))
     write_csv(
         args.exclusion_log,
         exclusions,
@@ -96,6 +114,8 @@ def main() -> None:
 
     print(f"Draft agreements: {len(draft)} -> {args.draft}")
     print(f"Scope exceptions: {len(exceptions)} -> {args.scope_exceptions}")
+    print(f"Core dataset: {len(core)} -> {args.core}")
+    print(f"Extended dataset: {len(extended)} -> {args.extended}")
     print(f"Publication exclusions: {len(exclusions)} -> {args.exclusion_log}")
 
 

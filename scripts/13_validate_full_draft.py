@@ -19,6 +19,9 @@ ALLOWED_TYPES = {
     "military_financial",
     "other_military",
 }
+ALLOWED_ACTOR_TYPES = {"military", "coast_guard", "gendarmerie", "police"}
+ALLOWED_PARTNER_RECOGNITION = {"un_member", "limited"}
+ALLOWED_INSTRUMENT_LEVELS = {"intergovernmental", "inter-agency"}
 
 
 def split_values(value: str) -> list[str]:
@@ -53,6 +56,16 @@ def main() -> None:
         type=Path,
         default=Path("data/interim/scope_exceptions.csv"),
     )
+    parser.add_argument(
+        "--core",
+        type=Path,
+        default=Path("data/final/tsiav_2010_2026.csv"),
+    )
+    parser.add_argument(
+        "--extended",
+        type=Path,
+        default=Path("data/final/tsiav_2010_2026_extended.csv"),
+    )
     parser.add_argument("--pilot", type=Path, default=Path("data/final/tsiav_pilot_2017.csv"))
     args = parser.parse_args()
 
@@ -60,6 +73,10 @@ def main() -> None:
         draft = list(csv.DictReader(handle))
     with args.exceptions.open(encoding="utf-8-sig", newline="") as handle:
         exceptions = list(csv.DictReader(handle))
+    with args.core.open(encoding="utf-8-sig", newline="") as handle:
+        core = list(csv.DictReader(handle))
+    with args.extended.open(encoding="utf-8-sig", newline="") as handle:
+        extended = list(csv.DictReader(handle))
     with args.pilot.open(encoding="utf-8-sig", newline="") as handle:
         pilot = list(csv.DictReader(handle))
 
@@ -76,6 +93,16 @@ def main() -> None:
             errors.append(f"{row_id}: non-draft scope status {row['scope_status']}")
         if row["type"] not in ALLOWED_TYPES:
             errors.append(f"{row_id}: invalid type {row['type']!r}")
+        if row["actor_type"] not in ALLOWED_ACTOR_TYPES:
+            errors.append(f"{row_id}: invalid actor_type {row['actor_type']!r}")
+        if row["partner_recognition"] not in ALLOWED_PARTNER_RECOGNITION:
+            errors.append(
+                f"{row_id}: invalid partner_recognition {row['partner_recognition']!r}"
+            )
+        if row["instrument_level"] not in ALLOWED_INSTRUMENT_LEVELS:
+            errors.append(f"{row_id}: invalid instrument_level {row['instrument_level']!r}")
+        if row["core_sample"] != "true":
+            errors.append(f"{row_id}: draft row is not in the core sample")
 
         expected_framework = "cerceve" in fold_for_match(row["title_tr"])
         if (row["is_framework"] == "true") != expected_framework:
@@ -125,11 +152,47 @@ def main() -> None:
         errors.append("confirmed pilot IDs in the draft do not exactly match the 2017 fixture")
 
     exception_statuses = {row["scope_status"] for row in exceptions}
-    required_statuses = {"auto_exclude", "needs_user_review"}
+    required_statuses = {"auto_exclude", "extended_only"}
     if not required_statuses.issubset(exception_statuses):
         errors.append("scope exceptions are missing one or more required status classes")
-    if "split_required" in exception_statuses:
-        errors.append("one or more multi-instrument publications still require splitting")
+    unresolved = exception_statuses & {"split_required", "needs_user_review"}
+    if unresolved:
+        errors.append(f"unresolved scope statuses remain: {sorted(unresolved)}")
+
+    draft_ids = {row["id"] for row in draft}
+    core_ids = {row["id"] for row in core}
+    extended_ids = {row["id"] for row in extended}
+    extended_only = [row for row in exceptions if row["scope_status"] == "extended_only"]
+    extended_only_ids = {row["id"] for row in extended_only}
+    if core_ids != draft_ids:
+        errors.append("core dataset IDs do not exactly match the confirmed draft")
+    if extended_ids != core_ids | extended_only_ids:
+        errors.append("extended dataset does not equal core plus extended-only rows")
+    if len(core_ids) != len(core) or len(extended_ids) != len(extended):
+        errors.append("duplicate IDs exist in a final dataset")
+    if core and extended and list(core[0]) != list(extended[0]):
+        errors.append("core and extended datasets have different schemas")
+    for row in extended_only:
+        if row["core_sample"] != "false":
+            errors.append(f"{row['id']}: extended-only row is marked core")
+        if row["actor_type"] not in {"coast_guard", "gendarmerie", "police"}:
+            errors.append(f"{row['id']}: extended-only actor is not a non-military security force")
+        if row["partner_recognition"] not in ALLOWED_PARTNER_RECOGNITION:
+            errors.append(f"{row['id']}: invalid extended-only partner recognition")
+        if row["instrument_level"] not in ALLOWED_INSTRUMENT_LEVELS:
+            errors.append(f"{row['id']}: invalid extended-only instrument level")
+        if row["type"] not in ALLOWED_TYPES:
+            errors.append(f"{row['id']}: invalid extended-only type")
+        if not re.fullmatch(r".+ \([A-Z0-9]{3}\)", row["partner"]):
+            errors.append(f"{row['id']}: malformed extended-only partner")
+        if not row["source_url"].startswith("https://www.resmigazete.gov.tr/"):
+            errors.append(f"{row['id']}: extended-only row lacks an official source")
+        parse_iso(row["date_signed"], "date_signed", row["id"], errors)
+        if parse_iso(row["date_approved"], "date_approved", row["id"], errors) is None:
+            errors.append(f"{row['id']}: extended-only approval date is missing")
+    for row in extended:
+        if row["actor_type"] in {"coast_guard", "gendarmerie", "police"} and row["core_sample"] != "false":
+            errors.append(f"{row['id']}: non-military security-force row entered the core sample")
 
     if errors:
         print("Full-draft validation failed:")
@@ -137,7 +200,10 @@ def main() -> None:
             print(f"- {error}")
         raise SystemExit(1)
 
-    print(f"Full-draft validation passed: {len(draft)} draft rows, {len(exceptions)} exceptions")
+    print(
+        "Full-draft validation passed: "
+        f"{len(core)} core rows, {len(extended)} extended rows, {len(exceptions)} exceptions"
+    )
     for warning in warnings:
         print(f"WARNING: {warning}")
 

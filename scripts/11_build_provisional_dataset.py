@@ -61,6 +61,36 @@ def fold_for_match(value: str) -> str:
     return without_marks.replace("ı", "i")
 
 
+def infer_actor_type(title: str) -> str:
+    folded = fold_for_match(title)
+    if "sahil guvenlik" in folded:
+        return "coast_guard"
+    if "jandarma" in folded:
+        return "gendarmerie"
+    if "polis" in folded or "emniyet" in folded:
+        return "police"
+    return "military"
+
+
+def infer_partner_recognition(partner: str) -> str:
+    if not partner:
+        return ""
+    if partner.endswith("(XKX)") or partner.endswith("(XNC)"):
+        return "limited"
+    return "un_member"
+
+
+def infer_instrument_level(title: str) -> str:
+    folded = fold_for_match(title)
+    if (
+        "hukumeti" in folded
+        or "bakanlar kurulu" in folded
+        or folded.startswith("turkiye cumhuriyeti ile ")
+    ):
+        return "intergovernmental"
+    return "inter-agency"
+
+
 def scope_suggestion(title: str, confirmed: bool) -> tuple[str, str]:
     if confirmed:
         return "confirmed_in", "Included by the manually reviewed 2017 pilot."
@@ -122,6 +152,11 @@ def main() -> None:
         default=Path("data/interim/manual_group_splits.csv"),
     )
     parser.add_argument(
+        "--scope-overrides",
+        type=Path,
+        default=Path("data/interim/manual_scope_overrides.csv"),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("data/interim/provisional_dataset.csv"),
@@ -148,6 +183,10 @@ def main() -> None:
         group_splits: dict[str, list[dict[str, str]]] = defaultdict(list)
         for row in csv.DictReader(handle):
             group_splits[row["source_group_id"]].append(row)
+    with args.scope_overrides.open(encoding="utf-8-sig", newline="") as handle:
+        scope_overrides = {
+            row["group_id"]: row for row in csv.DictReader(handle)
+        }
 
     members_by_group: dict[str, list[dict[str, str]]] = defaultdict(list)
     for item in members:
@@ -260,6 +299,10 @@ def main() -> None:
                 "status": "included" if confirmed else "provisional",
                 "scope_status": scope_status,
                 "scope_reason": scope_reason,
+                "actor_type": infer_actor_type(title),
+                "partner_recognition": infer_partner_recognition(partner),
+                "instrument_level": infer_instrument_level(title),
+                "core_sample": "true" if scope_status in {"confirmed_in", "provisional_in"} else "false",
             }
         )
 
@@ -311,6 +354,29 @@ def main() -> None:
             expanded_rows.append(split_row)
     output_rows = expanded_rows
 
+    for row in output_rows:
+        row["actor_type"] = infer_actor_type(row["title_tr"])
+        row["partner_recognition"] = infer_partner_recognition(row["partner"])
+        row["instrument_level"] = infer_instrument_level(row["title_tr"])
+        row["core_sample"] = (
+            "true" if row["scope_status"] in {"confirmed_in", "provisional_in"} else "false"
+        )
+        override = scope_overrides.get(row["id"])
+        if not override:
+            continue
+        row["scope_status"] = override["scope_status"]
+        row["scope_reason"] = override["scope_reason"]
+        row["actor_type"] = override["actor_type"]
+        row["partner_recognition"] = override["partner_recognition"]
+        row["instrument_level"] = override["instrument_level"]
+        row["core_sample"] = override["core_sample"]
+        row["status"] = "included"
+        row["notes"] = row["notes"].replace(
+            "Provisional row; title-level scope and parsed fields are not yet fully reviewed.",
+            "",
+        ).strip()
+        row["notes"] = (row["notes"] + " " + override["notes"]).strip()
+
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields_out = list(output_rows[0])
     with args.output.open("w", encoding="utf-8-sig", newline="") as handle:
@@ -319,7 +385,14 @@ def main() -> None:
         writer.writerows(output_rows)
 
     print(f"Wrote {len(output_rows)} agreement rows to {args.output}")
-    for status in ("confirmed_in", "provisional_in", "needs_user_review", "split_required", "auto_exclude"):
+    for status in (
+        "confirmed_in",
+        "provisional_in",
+        "extended_only",
+        "needs_user_review",
+        "split_required",
+        "auto_exclude",
+    ):
         print(f"{status}: {sum(row['scope_status'] == status for row in output_rows)}")
     print(f"Missing signed date: {sum(not row['date_signed'] for row in output_rows)}")
     print(f"Missing approval date: {sum(not row['date_approved'] for row in output_rows)}")
