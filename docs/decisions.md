@@ -24,3 +24,15 @@
   available; for law-only records it uses the law's acceptance date.
 - When both channels exist, `rg_date`, `rg_issue`, and `source_url` store the law
   reference first and the decision reference second, separated by semicolons.
+
+## 2010–2026 full run
+
+- The first full-run snapshot is frozen at 2026-11-13. Later updates must use a
+  new documented snapshot date rather than silently changing the coverage.
+- The 2017 pilot outputs remain unchanged and serve as regression fixtures while
+  the full-run pipeline is developed.
+- Full-run collection is resumable. A document-level network or extraction error
+  is logged and does not discard successful work from the rest of the batch.
+- The high-recall filter found 1,165 unique candidate publication URLs across
+  7,061 cached index pages. Substantive inclusion and deduplication are still
+  pending; this count is not an agreement count.

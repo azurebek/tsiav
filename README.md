@@ -30,15 +30,27 @@ When a law and decision refer to the same agreement, the final CSV stores both
 Resmî Gazete dates, issues, and URLs in law-then-decision order, separated by
 semicolons.
 
-## Full index download
+## Full collection run
 
-The range runner downloads 2010 through the supplied cutoff date. It is safe to
-restart because existing raw index files are skipped:
+The collection runner updates cached indexes through a fixed snapshot date,
+filters all requested years, downloads candidate documents, and extracts their
+text. It is safe to restart because existing raw files are skipped:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/run_full_download.ps1 `
-  -StartYear 2010 -EndYear 2026 -Through 2026-10-27 -Delay 2.3
+powershell -ExecutionPolicy Bypass -File scripts/run_full_collection.ps1 `
+  -StartYear 2010 -EndYear 2026 -Through 2026-11-13 -Delay 2.3
 ```
+
+The full-run intermediate outputs are:
+
+- `data/interim/candidates_full.csv`: high-recall matches across 2010–2026.
+- `data/interim/download_failures.csv`: URLs that still failed after retries.
+- `data/interim/extracted_docs_full.json`: extracted text plus a per-document
+  extraction status. Full extracted text is generated locally and is not tracked
+  in Git.
+
+One failed document does not stop the whole download batch. Re-running the same
+command retries only missing documents.
 
 `type` records the agreement's main substantive content. `is_framework` separately
 records whether the official Turkish title contains `çerçeve`, so a training

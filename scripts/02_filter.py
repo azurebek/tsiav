@@ -94,16 +94,32 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=Path("data/raw/index"))
     parser.add_argument("--output", type=Path, default=Path("data/interim/candidates.csv"))
+    parser.add_argument("--start-year", type=int, default=2017)
+    parser.add_argument("--end-year", type=int, default=2017)
     args = parser.parse_args()
 
+    if args.start_year > args.end_year:
+        parser.error("--start-year must be less than or equal to --end-year")
+
     rows: list[dict[str, str]] = []
-    for path in sorted(args.input.glob("2017*.htm")):
+    seen_urls: set[str] = set()
+    index_files = []
+    for path in sorted(args.input.glob("*.htm")):
+        match = re.fullmatch(r"(?P<day>\d{8})(?:M\d+)?\.htm", path.name, re.IGNORECASE)
+        if not match:
+            continue
+        year = int(match.group("day")[:4])
+        if args.start_year <= year <= args.end_year:
+            index_files.append(path)
+
+    for position, path in enumerate(index_files, start=1):
         page_text = decode_page(path.read_bytes())
         parser_ = AnchorParser()
         parser_.feed(page_text)
         day_key = path.name[:8]
+        year = int(day_key[:4])
         base_url = (
-            f"https://www.resmigazete.gov.tr/eskiler/2017/{day_key[4:6]}/{path.name}"
+            f"https://www.resmigazete.gov.tr/eskiler/{year}/{day_key[4:6]}/{path.name}"
         )
         document_pattern = re.compile(
             rf"^{day_key}(?:M\d+)?-\d+\.(?:htm|pdf)$",
@@ -117,6 +133,10 @@ def main() -> None:
             matched = [keyword for keyword in KEYWORDS if keyword.casefold() in title.casefold()]
             if not matched:
                 continue
+            source_url = urljoin(base_url, href)
+            if source_url in seen_urls:
+                continue
+            seen_urls.add(source_url)
             rows.append(
                 {
                     "index_file": path.name,
@@ -125,8 +145,15 @@ def main() -> None:
                     "channel_guess": channel_for(title),
                     "title_tr": title,
                     "matched_keywords": "; ".join(matched),
-                    "source_url": urljoin(base_url, href),
+                    "source_url": source_url,
                 }
+            )
+
+        if position % 500 == 0:
+            print(
+                f"Scanned {position}/{len(index_files)} indexes; "
+                f"candidates={len(rows)}",
+                flush=True,
             )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -143,7 +170,10 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
-    print(f"Wrote {len(rows)} candidates to {args.output}")
+    print(
+        f"Wrote {len(rows)} candidates from {len(index_files)} indexes "
+        f"({args.start_year}-{args.end_year}) to {args.output}"
+    )
 
 
 if __name__ == "__main__":

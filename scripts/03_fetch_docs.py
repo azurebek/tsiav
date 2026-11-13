@@ -30,6 +30,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=Path("data/interim/candidates.csv"))
     parser.add_argument("--output", type=Path, default=Path("data/raw/docs"))
+    parser.add_argument(
+        "--failures",
+        type=Path,
+        default=Path("data/interim/download_failures.csv"),
+    )
     parser.add_argument("--delay", type=float, default=2.3)
     args = parser.parse_args()
 
@@ -40,10 +45,11 @@ def main() -> None:
     last_request = 0.0
     downloaded = 0
     cached = 0
+    failures: list[dict[str, str]] = []
     for position, row in enumerate(rows, start=1):
         url = row["source_url"]
         destination = args.output / local_name(url)
-        if destination.exists():
+        if destination.exists() and destination.stat().st_size > 0:
             cached += 1
             continue
 
@@ -57,7 +63,10 @@ def main() -> None:
                 request = Request(url, headers={"User-Agent": USER_AGENT})
                 last_request = time.monotonic()
                 with urlopen(request, timeout=45) as response:
-                    destination.write_bytes(response.read())
+                    payload = response.read()
+                if not payload:
+                    raise OSError("Server returned an empty document")
+                destination.write_bytes(payload)
                 downloaded += 1
                 error = None
                 break
@@ -66,11 +75,33 @@ def main() -> None:
                 if attempt < 3:
                     time.sleep(args.delay * (2**attempt))
         if error is not None:
-            raise RuntimeError(f"Repeated download failure: {url} ({error})")
+            failures.append(
+                {
+                    "rg_date": row.get("rg_date", ""),
+                    "title_tr": row.get("title_tr", ""),
+                    "source_url": url,
+                    "local_file": str(destination),
+                    "error": repr(error),
+                }
+            )
         if position % 20 == 0:
-            print(f"Progress {position}/{len(rows)}", flush=True)
+            print(
+                f"Progress {position}/{len(rows)}: downloaded={downloaded}, "
+                f"cached={cached}, failures={len(failures)}",
+                flush=True,
+            )
 
-    print(f"Done: downloaded={downloaded}, cached={cached}")
+    args.failures.parent.mkdir(parents=True, exist_ok=True)
+    failure_fields = ["rg_date", "title_tr", "source_url", "local_file", "error"]
+    with args.failures.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=failure_fields)
+        writer.writeheader()
+        writer.writerows(failures)
+
+    print(
+        f"Done: downloaded={downloaded}, cached={cached}, "
+        f"failures={len(failures)}; failure log={args.failures}"
+    )
 
 
 if __name__ == "__main__":

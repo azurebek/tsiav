@@ -60,18 +60,54 @@ def main() -> None:
         rows = list(csv.DictReader(handle))
 
     records = []
-    for row in rows:
+    status_counts: dict[str, int] = {}
+    for position, row in enumerate(rows, start=1):
         filename = Path(urlparse(row["source_url"]).path).name
         source = args.docs / filename
-        text = pdf_to_text(source) if source.suffix.lower() == ".pdf" else html_to_text(source.read_bytes())
-        records.append({**row, "local_file": str(source), "text": text})
+        text = ""
+        error = ""
+        if not source.exists():
+            status = "missing_file"
+        else:
+            try:
+                text = (
+                    pdf_to_text(source)
+                    if source.suffix.lower() == ".pdf"
+                    else html_to_text(source.read_bytes())
+                )
+                if not text:
+                    status = "empty_text"
+                elif len(text) < 100:
+                    status = "short_text"
+                else:
+                    status = "ok"
+            except Exception as exc:  # Preserve the batch and log the document-level error.
+                status = "extraction_error"
+                error = repr(exc)
+
+        status_counts[status] = status_counts.get(status, 0) + 1
+        records.append(
+            {
+                **row,
+                "local_file": str(source),
+                "extraction_status": status,
+                "text_length": len(text),
+                "extraction_error": error,
+                "text": text,
+            }
+        )
+        if position % 50 == 0:
+            print(f"Progress {position}/{len(rows)}: {status_counts}", flush=True)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(records, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(f"Wrote {len(records)} extracted documents to {args.output}")
+    print(
+        f"Wrote {len(records)} extracted documents to {args.output}; "
+        f"statuses={status_counts}"
+    )
 
 
 if __name__ == "__main__":

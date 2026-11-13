@@ -3,6 +3,7 @@ data/raw/
 
 # Extracted full text is generated locally and may be large
 data/interim/extracted_docs*.json
+data/interim/download_failures.csv
 
 # Runtime output
 logs/
