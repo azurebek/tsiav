@@ -36,3 +36,12 @@
 - The high-recall filter found 1,165 unique candidate publication URLs across
   7,061 cached index pages. Substantive inclusion and deduplication are still
   pending; this count is not an agreement count.
+- Automated PDF text extraction returned 1,105 normal texts, 51 short texts, and
+  9 empty texts. Title review showed that 58 of the 60 low-text PDFs are clear
+  out-of-scope domestic or deployment records. The two potentially in-scope law
+  pages (Gabon Law 6657 and Somalia Law 6670) were rendered and visually reviewed;
+  their dates and law numbers are recorded in `manual_extraction_overrides.csv`.
+- Automated review rules are conservative suggestions, not silent final coding.
+  Against the completed 2017 pilot they suggested 35 inclusions and 69 exclusions,
+  all correctly, while leaving 9 records for review. No confirmed 2017 inclusion
+  was automatically excluded.

@@ -48,6 +48,9 @@ The full-run intermediate outputs are:
 - `data/interim/extracted_docs_full.json`: extracted text plus a per-document
   extraction status. Full extracted text is generated locally and is not tracked
   in Git.
+- `data/interim/review_full.csv`: conservative review queue. Automated labels are
+  suggestions only; only the previously validated 2017 pilot rows start with a
+  final review status.
 
 One failed document does not stop the whole download batch. Re-running the same
 command retries only missing documents.
