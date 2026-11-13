@@ -45,3 +45,12 @@
   Against the completed 2017 pilot they suggested 35 inclusions and 69 exclusions,
   all correctly, while leaving 9 records for review. No confirmed 2017 inclusion
   was automatically excluded.
+- After normalizing historical spelling and diacritics and adding explicit
+  out-of-scope rules, the review classifier reproduced all 113 pilot judgments:
+  all 37 included publications were suggested for inclusion and all 76 excluded
+  publications were suggested for exclusion, with no pilot misclassification.
+- Across the full corpus the calibrated rules suggest 193 inclusions and 971
+  exclusions. The one remaining truncated title was resolved from its full saved
+  text as the 2010 Türkiye-South Korea military student exchange and education
+  memorandum. Full-run labels remain provisional until deduplication and quality
+  review are complete.

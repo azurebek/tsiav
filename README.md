@@ -51,6 +51,10 @@ The full-run intermediate outputs are:
 - `data/interim/review_full.csv`: conservative review queue. Automated labels are
   suggestions only; only the previously validated 2017 pilot rows start with a
   final review status.
+- `data/interim/manual_extraction_overrides.csv`: fields recovered by visual PDF
+  review when automated text extraction was inadequate.
+- `data/interim/manual_review_overrides.csv`: documented manual resolutions for
+  records whose index titles are truncated or otherwise not classifiable by rule.
 
 One failed document does not stop the whole download batch. Re-running the same
 command retries only missing documents.
