@@ -125,3 +125,17 @@ The full-corpus field audit and index-coverage evidence are stored under
 `data/audit/`. `date_in_force` is reserved but not systematically extracted in
 the v1.0.x releases and is blank in every row; see the codebook and validation
 report before using that column.
+
+## Citation
+
+Please cite the dataset using the metadata in [`CITATION.cff`](CITATION.cff).
+GitHub's **Cite this repository** control can export the same citation in
+common formats.
+
+## License
+
+The pipeline source code is licensed under the [MIT License](LICENSE). The
+released datasets in `data/` and the project documentation are licensed under
+the [Creative Commons Attribution 4.0 International License](LICENSE-DATA.md)
+(CC BY 4.0). See the respective license files for terms and attribution
+guidance.

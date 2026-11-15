@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this dataset, please cite it using the metadata below."
+title: "TSİAV: Türkiye Defence Cooperation Agreements Dataset, 2010–2026"
+type: dataset
+authors:
+  - family-names: Sirojiddinov
+    given-names: "Azizbek Bakhtiyor Ugli"
+    orcid: "https://orcid.org/0009-0003-7141-0891"
+abstract: >-
+  A reproducible dataset of bilateral defence cooperation agreements published
+  in Türkiye's Resmî Gazete from 2010 through the 2026-11-13 snapshot.
+keywords:
+  - defence cooperation
+  - international agreements
+  - Türkiye
+  - Resmî Gazete
+license: CC-BY-4.0
+repository-code: "https://github.com/azurebek/tsiav"
+url: "https://github.com/azurebek/tsiav/releases/tag/v1.0.1"
+version: 1.0.1
+date-released: 2026-11-15
