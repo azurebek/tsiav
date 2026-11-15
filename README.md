@@ -5,6 +5,10 @@ cooperation agreements published in the Resmî Gazete from 2010 through the
 2026-11-13 snapshot. The manually reviewed 2017 dataset remains the regression
 fixture for the full run.
 
+Column definitions and coding rules are documented in `CODEBOOK.md`. Release
+counts, coverage, distributions, and automated integrity checks are recorded in
+`VALIDATION_REPORT.md`.
+
 ## Run
 
 Use Python 3.11 or newer. Install the one PDF dependency first:

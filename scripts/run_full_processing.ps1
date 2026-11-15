@@ -19,3 +19,4 @@ Invoke-PythonStep scripts/10_validate_pilot.py
 Invoke-PythonStep scripts/11_build_provisional_dataset.py
 Invoke-PythonStep scripts/12_materialize_review_outputs.py
 Invoke-PythonStep scripts/13_validate_full_draft.py
+Invoke-PythonStep scripts/14_build_validation_report.py
