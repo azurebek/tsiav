@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import platform
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -32,6 +34,11 @@ def main() -> None:
         default=Path("tmp/ocr_publications"),
     )
     parser.add_argument("--dpi", type=int, default=170)
+    parser.add_argument(
+        "--ocr-engine",
+        choices=("auto", "windows", "tesseract"),
+        default="auto",
+    )
     args = parser.parse_args()
 
     with args.fields.open(encoding="utf-8-sig", newline="") as handle:
@@ -50,6 +57,28 @@ def main() -> None:
     if args.output.exists():
         with args.output.open(encoding="utf-8-sig", newline="") as handle:
             existing = {row["source_url"]: row for row in csv.DictReader(handle)}
+
+    pending = [
+        row
+        for row in targets
+        if existing.get(row["source_url"], {}).get("ocr_status") != "ok"
+    ]
+    engine = args.ocr_engine
+    if engine == "auto":
+        if platform.system() == "Windows" and shutil.which("powershell.exe"):
+            engine = "windows"
+        elif shutil.which("tesseract"):
+            engine = "tesseract"
+        elif pending:
+            raise SystemExit(
+                "OCR is required but no engine is available. On Windows use the "
+                "built-in Windows OCR path; on Linux/macOS install Tesseract with "
+                "Turkish and English language data."
+            )
+    if pending and engine == "windows" and not shutil.which("powershell.exe"):
+        raise SystemExit("--ocr-engine windows requires powershell.exe")
+    if pending and engine == "tesseract" and not shutil.which("tesseract"):
+        raise SystemExit("--ocr-engine tesseract requires the tesseract executable")
 
     args.temp_dir.mkdir(parents=True, exist_ok=True)
     ocr_script = Path(__file__).with_name("windows_ocr_image.ps1").resolve()
@@ -105,8 +134,8 @@ def main() -> None:
                 output_by_url[url] = item
                 continue
             image = rendered_images[0]
-            recognize = subprocess.run(
-                [
+            if engine == "windows":
+                command = [
                     "powershell.exe",
                     "-NoProfile",
                     "-ExecutionPolicy",
@@ -115,9 +144,23 @@ def main() -> None:
                     str(ocr_script),
                     "-ImagePath",
                     str(image.resolve()),
-                ],
+                ]
+                encoding = "utf-8-sig"
+            else:
+                command = [
+                    "tesseract",
+                    str(image.resolve()),
+                    "stdout",
+                    "-l",
+                    "tur+eng",
+                    "--psm",
+                    "6",
+                ]
+                encoding = "utf-8"
+            recognize = subprocess.run(
+                command,
                 capture_output=True,
-                encoding="utf-8-sig",
+                encoding=encoding,
                 errors="replace",
             )
             item = {
@@ -145,7 +188,10 @@ def main() -> None:
         writer.writerows(output_rows)
 
     ok_count = sum(row["ocr_status"] == "ok" for row in output_rows)
-    print(f"Wrote {len(output_rows)} OCR rows to {args.output}; ok={ok_count}")
+    print(
+        f"Wrote {len(output_rows)} OCR rows to {args.output}; "
+        f"ok={ok_count}; engine={engine}"
+    )
 
 
 if __name__ == "__main__":

@@ -66,6 +66,11 @@ def main() -> None:
         type=Path,
         default=Path("data/final/tsiav_2010_2026_extended.csv"),
     )
+    parser.add_argument(
+        "--review",
+        type=Path,
+        default=Path("data/interim/review_full.csv"),
+    )
     parser.add_argument("--pilot", type=Path, default=Path("data/final/tsiav_pilot_2017.csv"))
     args = parser.parse_args()
 
@@ -77,6 +82,8 @@ def main() -> None:
         core = list(csv.DictReader(handle))
     with args.extended.open(encoding="utf-8-sig", newline="") as handle:
         extended = list(csv.DictReader(handle))
+    with args.review.open(encoding="utf-8-sig", newline="") as handle:
+        review = list(csv.DictReader(handle))
     with args.pilot.open(encoding="utf-8-sig", newline="") as handle:
         pilot = list(csv.DictReader(handle))
 
@@ -103,6 +110,8 @@ def main() -> None:
             errors.append(f"{row_id}: invalid instrument_level {row['instrument_level']!r}")
         if row["core_sample"] != "true":
             errors.append(f"{row_id}: draft row is not in the core sample")
+        if "Provisional row;" in row["notes"]:
+            errors.append(f"{row_id}: stale provisional note remains")
 
         expected_framework = "cerceve" in fold_for_match(row["title_tr"])
         if (row["is_framework"] == "true") != expected_framework:
@@ -194,6 +203,16 @@ def main() -> None:
         if row["actor_type"] in {"coast_guard", "gendarmerie", "police"} and row["core_sample"] != "false":
             errors.append(f"{row['id']}: non-military security-force row entered the core sample")
 
+    unresolved_review = [
+        row for row in review if row["review_status"] not in {"included", "excluded"}
+    ]
+    if unresolved_review:
+        errors.append(f"{len(unresolved_review)} publication review rows remain unresolved")
+    if not any(row["review_status"] == "included" for row in review):
+        errors.append("publication review has no included rows")
+    if not any(row["review_status"] == "excluded" for row in review):
+        errors.append("publication review has no excluded rows")
+
     if errors:
         print("Full-draft validation failed:")
         for error in errors:
@@ -204,6 +223,10 @@ def main() -> None:
         "Full-draft validation passed: "
         f"{len(core)} core rows, {len(extended)} extended rows, {len(exceptions)} exceptions"
     )
+    if not any(row["date_in_force"] for row in core):
+        warnings.append(
+            "date_in_force is not systematically extracted and is blank in all core rows"
+        )
     for warning in warnings:
         print(f"WARNING: {warning}")
 

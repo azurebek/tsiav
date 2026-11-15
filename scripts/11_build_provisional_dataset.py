@@ -322,9 +322,9 @@ def main() -> None:
             row["scope_status"] = "confirmed_in"
             row["scope_reason"] = batch["review_reason"]
             row["notes"] = row["notes"].replace(
-                "Provisional row; title-level scope and parsed fields are not yet fully reviewed. ",
+                "Provisional row; title-level scope and parsed fields are not yet fully reviewed.",
                 "",
-            )
+            ).strip()
             row["notes"] = (
                 row["notes"] + " " + f"Manual title review batch: {batch['snapshot']}."
             ).strip()
