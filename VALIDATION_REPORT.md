@@ -11,11 +11,16 @@ Snapshot: `2026-11-13`
 | Extended-only rows | 1 |
 | Core partner entities | 62 |
 | Candidate publication URLs reviewed | 1165 |
+| Included publication records | 194 |
+| Excluded publication records | 971 |
+| Unresolved publication records | 0 |
 | Core official-source references | 185 |
 | Unique core official-source URLs | 183 |
 | Core rows with signed date | 132 |
 | Core rows with approval date | 133 |
+| Core rows with date in force | 0 |
 | Core framework-title rows | 19 |
+| New-corpus field-audit sample | 30 |
 
 ## Automated checks
 
@@ -29,10 +34,50 @@ Snapshot: `2026-11-13`
 - PASS — `is_framework` exactly matches `çerçeve` in the official title
 - PASS — Non-military security-force records do not enter the core sample
 - PASS — No unresolved split or user-review status remains
+- PASS — No stale provisional note remains in either release
+- PASS — All publication-level review rows have a final disposition
+- PASS — The documented field-audit sample has no unresolved result
 
 ## Known data limitation
 
 - `GRP-c7636962ffb6` (Jordan (JOR)): `date_signed` is blank; the official approval and publication fields are complete.
+- `date_in_force` is not systematically extracted in this release and is blank in all 133 core rows. The reserved column must not be treated as evidence that an instrument never entered into force.
+
+## New-corpus field audit
+
+| Measure | Result |
+| --- | --- |
+| Non-pilot core population | 111 |
+| Stratified sample checked | 30 |
+| Passed without correction | 27 |
+| Corrected during audit | 3 |
+| Unresolved audit rows | 0 |
+
+The frozen sample covers approval years, content types, publication channels, instrument levels, and both framework-flag values. Fields were compared with official Resmî Gazete HTML text, official-PDF OCR, or a separately documented official source. Three title defects were corrected; no sampled date, document-number, issue, or source-link error was found. Row-level results are stored in `data/audit/field_audit_v1.csv`.
+
+## Publication funnel by Resmî Gazete year
+
+| RG year | Index files | Candidates | Included publications | Excluded publications | Core source refs |
+| --- | --- | --- | --- | --- | --- |
+| 2010 | 403 | 98 | 12 | 86 | 7 |
+| 2011 | 424 | 94 | 17 | 77 | 16 |
+| 2012 | 406 | 91 | 9 | 82 | 9 |
+| 2013 | 414 | 84 | 12 | 72 | 12 |
+| 2014 | 439 | 92 | 6 | 86 | 6 |
+| 2015 | 442 | 87 | 9 | 78 | 9 |
+| 2016 | 447 | 130 | 20 | 110 | 20 |
+| 2017 | 461 | 113 | 37 | 76 | 37 |
+| 2018 | 473 | 90 | 25 | 65 | 24 |
+| 2019 | 423 | 31 | 8 | 23 | 6 |
+| 2020 | 405 | 52 | 7 | 45 | 7 |
+| 2021 | 411 | 48 | 11 | 37 | 11 |
+| 2022 | 398 | 53 | 12 | 41 | 12 |
+| 2023 | 412 | 31 | 3 | 28 | 3 |
+| 2024 | 395 | 26 | 4 | 22 | 4 |
+| 2025 | 384 | 25 | 0 | 25 | 0 |
+| 2026 | 324 | 20 | 2 | 18 | 2 |
+
+The zero for 2025 is supported by a complete calendar-year index cache: 384 ordinary and supplementary index files produced 25 candidates, and all 25 were resolved as domestic/administrative measures or deployment mandates rather than bilateral defence-cooperation instruments. The low 2023–2024 and 2026 totals likewise follow the included-publication funnel; 2026 is covered only through the fixed 2026-11-13 snapshot.
 
 ## Core distribution by type
 
@@ -77,8 +122,8 @@ Snapshot: `2026-11-13`
 
 | Instrument level | Rows |
 | --- | --- |
-| inter-agency | 19 |
-| intergovernmental | 114 |
+| inter-agency | 18 |
+| intergovernmental | 115 |
 
 ## Core partner coverage
 

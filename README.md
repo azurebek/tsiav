@@ -90,6 +90,20 @@ After the cached collection exists, rebuild every review artifact with:
 powershell -ExecutionPolicy Bypass -File scripts/run_full_processing.ps1
 ```
 
+The equivalent cross-platform runners are:
+
+```bash
+python scripts/run_full_collection.py --start-year 2010 --end-year 2026 --through 2026-11-13
+python scripts/run_full_processing.py
+python scripts/run_validation.py
+```
+
+Fresh OCR uses Windows OCR when available and otherwise falls back to Tesseract
+with Turkish and English language data. Poppler's `pdftoppm` is required for
+rendering scanned PDF pages. GitHub Actions runs the unit tests and validates the
+committed release artifacts on every push and pull request; it does not repeat
+the multi-hour network collection job.
+
 The processing runner uses Windows OCR for scanned first pages and then reruns
 field extraction. Visually verified OCR exceptions are stored explicitly in
 `manual_extraction_overrides.csv`.
@@ -106,3 +120,8 @@ Non-military security forces (`coast_guard`, `gendarmerie`, and `police`) are
 coded in the extended layer but excluded from the core sample. The
 `partner_recognition` field is descriptive: `limited` does not by itself remove
 an otherwise in-scope military agreement from the core sample.
+
+The full-corpus field audit and index-coverage evidence are stored under
+`data/audit/`. `date_in_force` is reserved but not systematically extracted in
+the v1.0.x releases and is blank in every row; see the codebook and validation
+report before using that column.

@@ -30,7 +30,7 @@ approval publication falls inside the collection window.
 | `is_framework` | `true` exactly when the official Turkish title contains `çerçeve`; otherwise `false`. This flag is independent of `type`. |
 | `date_signed` | Signing date in ISO `YYYY-MM-DD` format. If the parties signed on different dates, the later date is stored and both dates are preserved in `notes`. |
 | `date_approved` | Approval-decision date when a decision exists; otherwise the law's acceptance date. ISO `YYYY-MM-DD`. |
-| `date_in_force` | Explicit entry-into-force date when stated and verified. Blank when unavailable. |
+| `date_in_force` | Reserved for a future systematic entry-into-force pass. Version 1.0.x does not extract this field; it is blank in every released row and must not be interpreted as “never entered into force.” |
 | `channel` | Approval-publication channel: `law`, `decision`, or `both`. |
 | `law_no` | Turkish approval-law number. Blank when no law publication was identified. Multiple values are semicolon-separated. |
 | `decision_no` | Council of Ministers or Presidential approval-decision number. Blank when no decision publication was identified. Multiple values are semicolon-separated. |
@@ -92,6 +92,10 @@ Unknown values are blank, never inferred. Material gaps are described in
 `notes`. Every released row must retain a direct official Resmî Gazete URL.
 Manual visual or external official-source corrections are stored in explicit
 override files so they can be audited and reproduced.
+
+`date_in_force` is a schema placeholder rather than a populated v1.0.x measure.
+It remains in the release to avoid a later breaking column addition, but its
+current coverage is 0/133 core rows.
 
 The only missing core signing date in version 1.0 is the Jordan S-70 helicopter
 pilot and technician training protocol (`GRP-c7636962ffb6`). Its approval and

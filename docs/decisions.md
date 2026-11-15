@@ -103,3 +103,9 @@
   government or the states themselves as parties is `intergovernmental`; an
   instrument naming ministries, general staffs, service commands, academies, or
   security-force commands without a government party is `inter-agency`.
+- A 30-record stratified audit of the 111 non-pilot core rows found three title
+  defects and no sampled date, number, issue, or link error. The corrected titles
+  and row-level audit results are retained in explicit override/audit files.
+- `date_in_force` was not systematically collected for v1.0.x. It remains a
+  reserved all-blank column and is disclosed as such in the codebook and
+  validation report.

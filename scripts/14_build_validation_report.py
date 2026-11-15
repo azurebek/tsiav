@@ -75,6 +75,16 @@ def main() -> None:
         type=Path,
         default=Path("data/interim/review_full.csv"),
     )
+    parser.add_argument(
+        "--field-audit",
+        type=Path,
+        default=Path("data/audit/field_audit_v1.csv"),
+    )
+    parser.add_argument(
+        "--index-coverage",
+        type=Path,
+        default=Path("data/audit/index_coverage_v1.csv"),
+    )
     parser.add_argument("--output", type=Path, default=Path("VALIDATION_REPORT.md"))
     parser.add_argument("--snapshot", default="2026-11-13")
     args = parser.parse_args()
@@ -83,6 +93,8 @@ def main() -> None:
     extended = read_csv(args.extended)
     exceptions = read_csv(args.exceptions)
     review = read_csv(args.review)
+    field_audit = read_csv(args.field_audit)
+    index_coverage = read_csv(args.index_coverage)
 
     errors: list[str] = []
     warnings: list[str] = []
@@ -104,6 +116,18 @@ def main() -> None:
         errors.append("one or more core rows are not confirmed_in")
     if any(row["status"] != "included" for row in extended):
         errors.append("one or more released rows are not marked included")
+    unresolved_review = [
+        row for row in review if row["review_status"] not in {"included", "excluded"}
+    ]
+    if unresolved_review:
+        errors.append(f"{len(unresolved_review)} publication review rows remain unresolved")
+    audit_ids = [row["id"] for row in field_audit]
+    if len(audit_ids) != len(set(audit_ids)):
+        errors.append("field-audit sample contains duplicate IDs")
+    if not set(audit_ids).issubset(set(core_ids)):
+        errors.append("field-audit sample contains an ID outside the core dataset")
+    if any(row["result"] not in {"pass", "corrected"} for row in field_audit):
+        errors.append("field-audit sample contains an unresolved result")
 
     for row in extended:
         row_id = row["id"]
@@ -139,6 +163,8 @@ def main() -> None:
             errors.append(f"{row_id}: approval date is after publication date")
         if row["actor_type"] in NON_MILITARY_ACTORS and row["core_sample"] != "false":
             errors.append(f"{row_id}: non-military security actor entered the core sample")
+        if "Provisional row;" in row["notes"]:
+            errors.append(f"{row_id}: stale provisional note remains in the release")
 
     exception_counts = Counter(row["scope_status"] for row in exceptions)
     if exception_counts.get("needs_user_review") or exception_counts.get("split_required"):
@@ -157,6 +183,19 @@ def main() -> None:
     instrument_counts = Counter(row["instrument_level"] for row in core)
     source_refs = [source for row in core for source in split_values(row["source_url"])]
     missing_signed = [row for row in core if not row["date_signed"]]
+    populated_in_force = [row for row in core if row["date_in_force"]]
+    review_counts = Counter(row["review_status"] for row in review)
+    audit_counts = Counter(row["result"] for row in field_audit)
+    candidate_years = sorted({row["rg_date"][:4] for row in review})
+    candidate_counts = Counter(row["rg_date"][:4] for row in review)
+    included_publications = Counter(
+        row["rg_date"][:4] for row in review if row["review_status"] == "included"
+    )
+    excluded_publications = Counter(
+        row["rg_date"][:4] for row in review if row["review_status"] == "excluded"
+    )
+    core_source_years = Counter(value[:4] for row in core for value in split_values(row["rg_date"]))
+    coverage_by_year = {row["year"]: row for row in index_coverage}
 
     lines: list[str] = [
         "# TSİAV 2010–2026 validation report",
@@ -175,11 +214,16 @@ def main() -> None:
                 ["Extended-only rows", len(extended_only)],
                 ["Core partner entities", len(partner_counts)],
                 ["Candidate publication URLs reviewed", len(review)],
+                ["Included publication records", review_counts["included"]],
+                ["Excluded publication records", review_counts["excluded"]],
+                ["Unresolved publication records", len(unresolved_review)],
                 ["Core official-source references", len(source_refs)],
                 ["Unique core official-source URLs", len(set(source_refs))],
                 ["Core rows with signed date", len(core) - len(missing_signed)],
                 ["Core rows with approval date", sum(bool(row["date_approved"]) for row in core)],
+                ["Core rows with date in force", len(populated_in_force)],
                 ["Core framework-title rows", sum(row["is_framework"] == "true" for row in core)],
+                ["New-corpus field-audit sample", len(field_audit)],
             ],
         )
     )
@@ -195,6 +239,9 @@ def main() -> None:
         "`is_framework` exactly matches `çerçeve` in the official title",
         "Non-military security-force records do not enter the core sample",
         "No unresolved split or user-review status remains",
+        "No stale provisional note remains in either release",
+        "All publication-level review rows have a final disposition",
+        "The documented field-audit sample has no unresolved result",
     ]
     lines.extend(f"- PASS — {check}" for check in checks)
 
@@ -207,6 +254,66 @@ def main() -> None:
             )
     else:
         lines.append("- None.")
+    lines.append(
+        "- `date_in_force` is not systematically extracted in this release and is "
+        f"blank in all {len(core)} core rows. The reserved column must not be treated "
+        "as evidence that an instrument never entered into force."
+    )
+
+    lines.extend(["", "## New-corpus field audit", ""])
+    lines.extend(
+        markdown_table(
+            ["Measure", "Result"],
+            [
+                ["Non-pilot core population", len(core) - 22],
+                ["Stratified sample checked", len(field_audit)],
+                ["Passed without correction", audit_counts["pass"]],
+                ["Corrected during audit", audit_counts["corrected"]],
+                ["Unresolved audit rows", 0],
+            ],
+        )
+    )
+    lines.extend(
+        [
+            "",
+            "The frozen sample covers approval years, content types, publication "
+            "channels, instrument levels, and both framework-flag values. Fields "
+            "were compared with official Resmî Gazete HTML text, official-PDF OCR, "
+            "or a separately documented official source. Three title defects were "
+            "corrected; no sampled date, document-number, issue, or source-link "
+            "error was found. Row-level results are stored in "
+            "`data/audit/field_audit_v1.csv`.",
+        ]
+    )
+
+    lines.extend(["", "## Publication funnel by Resmî Gazete year", ""])
+    lines.extend(
+        markdown_table(
+            ["RG year", "Index files", "Candidates", "Included publications", "Excluded publications", "Core source refs"],
+            [
+                [
+                    year,
+                    coverage_by_year.get(year, {}).get("index_files", ""),
+                    candidate_counts[year],
+                    included_publications[year],
+                    excluded_publications[year],
+                    core_source_years[year],
+                ]
+                for year in candidate_years
+            ],
+        )
+    )
+    lines.extend(
+        [
+            "",
+            "The zero for 2025 is supported by a complete calendar-year index cache: "
+            "384 ordinary and supplementary index files produced 25 candidates, and "
+            "all 25 were resolved as domestic/administrative measures or deployment "
+            "mandates rather than bilateral defence-cooperation instruments. The low "
+            "2023–2024 and 2026 totals likewise follow the included-publication funnel; "
+            "2026 is covered only through the fixed 2026-11-13 snapshot.",
+        ]
+    )
 
     lines.extend(["", "## Core distribution by type", ""])
     lines.extend(
